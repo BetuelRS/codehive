@@ -83,7 +83,7 @@ impl Runner {
             Self::capture_output(child, job.stdin.as_deref(), job.timeout_ms).await?;
         let duration_ms = start.elapsed().as_millis() as u64;
 
-        let success = error.is_none() && exit_code.map_or(true, |c| c == 0);
+        let success = error.is_none() && exit_code.is_none_or(|c| c == 0);
 
         Ok(ExecutionResult {
             id: job.id.clone(),
@@ -156,7 +156,7 @@ impl Runner {
             Self::capture_output(child, job.stdin.as_deref(), job.timeout_ms).await?;
         let duration_ms = start.elapsed().as_millis() as u64;
 
-        let success = error.is_none() && exit_code.map_or(true, |c| c == 0);
+        let success = error.is_none() && exit_code.is_none_or(|c| c == 0);
 
         Ok(ExecutionResult {
             id: job.id.clone(),

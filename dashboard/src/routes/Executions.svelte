@@ -12,7 +12,6 @@
   let submitError = $state("");
   let selectedId = $state<string | null>(null);
   let detailExec = $state<ExecutionResult | null>(null);
-  let detailLoading = $state(false);
 
   const languages = [
     "python", "javascript", "typescript", "java", "cpp", "rust", "go"
@@ -53,13 +52,10 @@
 
   async function showDetail(id: string) {
     selectedId = id;
-    detailLoading = true;
     try {
       detailExec = await api.getExecution(id);
     } catch {
       detailExec = null;
-    } finally {
-      detailLoading = false;
     }
   }
 </script>

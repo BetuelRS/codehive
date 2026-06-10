@@ -3,7 +3,6 @@
   import { stats, liveFeed, loadStats } from "../lib/stores";
   import { formatDuration } from "../lib/api";
   import ExecutionCard from "../components/ExecutionCard.svelte";
-  import StatusBadge from "../components/StatusBadge.svelte";
 
   let statsData = $derived($stats);
 

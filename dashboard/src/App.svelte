@@ -15,7 +15,7 @@
     { id: "settings", label: "Settings", icon: "⚡" },
   ];
 
-  let onlineCount = $derived($workers.filter((w) => w.status === "online").length);
+  let onlineCount = $derived($workers.filter((w) => w.status === "idle" || w.status === "busy").length);
 
   onMount(() => {
     initWS();

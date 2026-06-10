@@ -1,11 +1,19 @@
 package runner
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/codehive/orchestrator/internal/types"
 )
+
+func testShell() (string, []string) {
+	if runtime.GOOS == "windows" {
+		return "cmd", []string{"/c"}
+	}
+	return "sh", []string{"-c"}
+}
 
 func TestNewDispatcher(t *testing.T) {
 	d := NewDispatcher(3)
@@ -41,10 +49,10 @@ func TestDispatcherSubmitJob(t *testing.T) {
 	resultCh := make(chan types.ExecutionResult, 1)
 	d.Submit(&types.Job{
 		Request: types.ExecutionRequest{
-			ID:       "test-job",
-			Language: types.LanguagePython,
-			Code:     "print('hello')",
-			Timeout:  5,
+			ID:        "test-job",
+			Language:  types.LanguagePython,
+			Code:      "print('hello')",
+			Timeout:   5,
 			CreatedAt: time.Now(),
 		},
 		ResultCh: resultCh,
@@ -132,7 +140,8 @@ func TestWorkerIDFormat(t *testing.T) {
 }
 
 func TestExecuteCommand(t *testing.T) {
-	stdout, stderr, exitCode, err := executeCommand("cmd", []string{"/c", "echo", "hello"}, "", 5)
+	shell, args := testShell()
+	stdout, stderr, exitCode, err := executeCommand(shell, append(args, "echo hello"), "", 5)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -159,7 +168,8 @@ func TestExecuteCommandWithStdin(t *testing.T) {
 }
 
 func TestExecuteCommandNonZeroExit(t *testing.T) {
-	stdout, stderr, exitCode, err := executeCommand("cmd", []string{"/c", "exit", "42"}, "", 5)
+	shell, args := testShell()
+	stdout, stderr, exitCode, err := executeCommand(shell, append(args, "exit 42"), "", 5)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

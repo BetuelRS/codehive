@@ -123,12 +123,11 @@ impl Sandbox {
             ]),
             _ => unreachable!(),
         };
-        let name = cmd;
         let output = Command::new(cmd).args(&args).output().await
-            .with_context(|| format!("failed to run {name}"))?;
+            .with_context(|| format!("failed to run {cmd}"))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("{name} failed:\n{stderr}");
+            anyhow::bail!("{cmd} failed:\n{stderr}");
         }
         Ok(binary_path)
     }
