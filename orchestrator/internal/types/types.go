@@ -68,6 +68,13 @@ type Job struct {
 	Priority  int
 }
 
+// Heartbeat represents worker liveness signal.
+type Heartbeat struct {
+	WorkerID  string    `json:"worker_id"`
+	Timestamp time.Time `json:"timestamp"`
+	Status    string    `json:"status"`
+}
+
 // Config defines orchestrator server settings.
 type Config struct {
 	Port          int    `json:"port"`

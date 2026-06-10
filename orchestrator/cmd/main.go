@@ -10,10 +10,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/codehive/orchestrator/internal/api"
 	"github.com/codehive/orchestrator/internal/db"
 	"github.com/codehive/orchestrator/internal/runner"
 	"github.com/codehive/orchestrator/internal/types"
+	"github.com/codehive/orchestrator/internal/workerapi"
 )
 
 // main parses first arg as command and dispatches.
@@ -21,7 +21,7 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: orchestrator <command>")
 		fmt.Println("Commands:")
-		fmt.Println("  server    Start HTTP API server")
+		fmt.Println("  server    Start worker-facing HTTP server (:9090)")
 		fmt.Println("  worker    Start worker node")
 		fmt.Println("  run       Execute single code snippet")
 		os.Exit(1)
@@ -41,10 +41,10 @@ func main() {
 	}
 }
 
-// runServer starts HTTP API server with configurable port, DB, workers.
+// runServer starts dispatcher + worker-facing HTTP server on :9090.
 func runServer() {
 	fs := flag.NewFlagSet("server", flag.ExitOnError)
-	port := fs.Int("port", 8080, "HTTP server port")
+	port := fs.Int("port", 9090, "worker API server port")
 	dbURL := fs.String("db", "", "PostgreSQL connection URL")
 	maxWorkers := fs.Int("workers", 4, "max worker count")
 	configPath := fs.String("config", "", "path to config file")
@@ -82,12 +82,14 @@ func runServer() {
 		}
 	}
 
+	_ = database
+
 	dispatcher := runner.NewDispatcher(cfg.MaxWorkers)
 	dispatcher.Start()
 	defer dispatcher.Stop()
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
-	srv := api.NewServer(addr, dispatcher, database)
+	srv := workerapi.NewServer(addr, dispatcher)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

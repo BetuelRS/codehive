@@ -29,6 +29,8 @@ type Dispatcher struct {
 	stopCh     chan struct{}
 	stopOnce   sync.Once
 	wg         sync.WaitGroup
+	results    sync.Map
+	heartbeats sync.Map
 }
 
 func NewDispatcher(maxWorkers int) *Dispatcher {
@@ -150,6 +152,23 @@ func executeCommand(cmd string, args []string, input string, timeoutSec int) (st
 	return stdoutStr, stderrStr, exitCode, nil
 }
 
+func (d *Dispatcher) Dequeue() *types.Job {
+	select {
+	case job := <-d.jobQueue:
+		return job
+	default:
+		return nil
+	}
+}
+
+func (d *Dispatcher) StoreResult(jobId string, result types.ExecutionResult) {
+	d.results.Store(jobId, result)
+}
+
+func (d *Dispatcher) RecordHeartbeat(workerId string) {
+	d.heartbeats.Store(workerId, time.Now())
+}
+
 func (d *Dispatcher) GetWorkers() []types.WorkerStatus {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -172,5 +191,18 @@ func (d *Dispatcher) GetWorkers() []types.WorkerStatus {
 		})
 		w.mu.Unlock()
 	}
+
+	d.heartbeats.Range(func(key, value interface{}) bool {
+		workerID := key.(string)
+		lastSeen := value.(time.Time)
+		statuses = append(statuses, types.WorkerStatus{
+			ID:       workerID,
+			Status:   "active",
+			LastSeen: lastSeen,
+			Uptime:   time.Since(lastSeen).String(),
+		})
+		return true
+	})
+
 	return statuses
 }

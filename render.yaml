@@ -1,0 +1,62 @@
+services:
+  - type: web
+    name: codehive-api
+    env: node
+    buildCommand: cd api && npm ci && npm run build
+    startCommand: cd api && node dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PGHOST
+        fromDatabase:
+          name: codehive-db
+          property: host
+      - key: PGDATABASE
+        fromDatabase:
+          name: codehive-db
+          property: database
+      - key: PGUSER
+        fromDatabase:
+          name: codehive-db
+          property: user
+      - key: PGPASSWORD
+        fromDatabase:
+          name: codehive-db
+          property: password
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: codehive-redis
+          property: host
+
+  - type: web
+    name: codehive-dashboard
+    env: static
+    buildCommand: cd dashboard && npm ci && npm run build
+    staticPublishPath: dashboard/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://codehive-api.onrender.com
+
+  - type: web
+    name: codehive-orchestrator
+    env: go
+    buildCommand: cd orchestrator && go build -o bin/orchestrator ./cmd/main.go
+    startCommand: ./orchestrator/bin/orchestrator server
+    envVars:
+      - key: PORT
+        value: "9090"
+      - key: PGHOST
+        fromDatabase:
+          name: codehive-db
+          property: host
+
+databases:
+  - name: codehive-db
+    plan: free
+    databaseName: codehive
+
+redis:
+  - name: codehive-redis
+    plan: free

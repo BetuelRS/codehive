@@ -79,6 +79,79 @@ Open `http://localhost:5173` — Vite proxies `/api` and `/ws` to API at `:3001`
 | `USE_DOCKER` | false | Worker |
 | `MAX_CONCURRENT_JOBS` | 4 | Worker |
 
+## Deploy
+
+### Render (Blueprint)
+
+Click button → connect repo → deploys API, Dashboard, Orchestrator, PostgreSQL, Redis.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+Or manual:
+
+1. Push repo to GitHub/GitLab
+2. In Render Dashboard → Blueprint → connect repo
+3. Render reads `render.yaml` → provisions all services
+
+### Docker Compose
+
+```bash
+# Full stack
+docker compose -f docker/docker-compose.yml up -d
+
+# Without worker
+docker compose -f docker/docker-compose.yml up -d postgres redis api dashboard orchestrator
+
+# Include worker (optional, via profile)
+docker compose -f docker/docker-compose.yml --profile worker up -d
+```
+
+### Environment Variables
+
+| Variable | Default | Required | Component |
+|----------|---------|----------|-----------|
+| `PORT` | 3001 | no | API |
+| `PGHOST` | localhost | yes | API, Orchestrator |
+| `PGPORT` | 5432 | no | API, Orchestrator |
+| `PGDATABASE` | codehive | no | API, Orchestrator |
+| `PGUSER` | codehive | yes | API, Orchestrator |
+| `PGPASSWORD` | codehive | yes | API, Orchestrator |
+| `REDIS_HOST` | localhost | yes | API |
+| `REDIS_PORT` | 6379 | no | API |
+| `ORCHESTRATOR_URL` | http://localhost:8080 | yes | Worker |
+| `WORKER_ID` | auto-uuid | no | Worker |
+| `USE_DOCKER` | false | no | Worker |
+| `MAX_CONCURRENT_JOBS` | 4 | no | Worker |
+
+### Quick Start for Contributors
+
+```bash
+# 1. Clone
+git clone <repo> && cd codehive
+
+# 2. Start infra (PG + Redis)
+docker compose -f docker/docker-compose.yml up -d postgres redis
+
+# 3. Start API dev mode
+cd api && npm install && npm run dev
+
+# 4. Start Orchestrator
+cd orchestrator && go build -o bin/ ./cmd/main.go && ./bin/orchestrator server
+
+# 5. Start Worker
+cd worker && cargo build --release
+WORKER_ID=dev-1 ORCHESTRATOR_URL=http://localhost:8080 ./target/release/codehive-worker
+
+# 6. Start Dashboard
+cd dashboard && npm install && npm run dev
+```
+
+Or use dev script:
+
+```powershell
+.\scripts\dev.ps1
+```
+
 ## License
 
 MIT
