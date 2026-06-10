@@ -1,1 +1,16 @@
-* text=auto
+* text=auto eol=lf
+*.ts text diff=typescript
+*.go text diff=golang
+*.rs text diff=rust
+*.svelte text
+*.js text diff=javascript
+*.json text
+*.md text
+*.css text
+*.html text
+*.yml text
+*.yaml text
+*.env.example text
+.gitignore text
+LICENSE text
+

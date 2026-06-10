@@ -1,5 +1,8 @@
 # CodeHive
 
+[![CI](https://github.com/BetuelRS/codehive/actions/workflows/ci.yml/badge.svg)](https://github.com/BetuelRS/codehive/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > Distributed code execution platform — submit code, queue in Redis, execute in sandboxed Rust workers, stream results to Svelte 5 dashboard.
 
 [![Go](https://img.shields.io/badge/Go-1.21-00ADD8?logo=go)](orchestrator/)

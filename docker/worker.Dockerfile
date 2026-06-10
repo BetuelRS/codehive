@@ -8,7 +8,8 @@ COPY src/ ./src/
 RUN cargo build --release
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates && adduser -D -H appuser
 COPY --from=build /app/target/release/codehive-worker /usr/local/bin/codehive-worker
+USER appuser
 EXPOSE 9091
 CMD ["codehive-worker"]
