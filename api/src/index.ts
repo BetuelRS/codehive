@@ -1,8 +1,11 @@
-/** CodeHive API server entry point. Registers plugins, routes, WebSocket, starts listener. */
 import 'dotenv/config'
 import Fastify from 'fastify'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { readFileSync, existsSync } from 'node:fs'
 import { registerCors } from './plugins/cors.js'
 import { registerWebSocket } from './plugins/ws.js'
+import { rootRoutes } from './routes/root.js'
 import { healthRoutes } from './routes/health.js'
 import { executeRoutes } from './routes/execute.js'
 import { executionsRoutes } from './routes/executions.js'
@@ -23,16 +26,32 @@ const app = Fastify({
   },
 })
 
-/** Initialises Fastify app, registers plugins/routes, starts HTTP server. */
 async function start(): Promise<void> {
   await registerCors(app)
   await registerWebSocket(app)
 
+  await app.register(rootRoutes)
   await app.register(healthRoutes)
   await app.register(executeRoutes)
   await app.register(executionsRoutes)
   await app.register(workerRoutes)
   await app.register(workerApiRoutes)
+
+  // Serve dashboard static files in production
+  if (process.env.NODE_ENV === 'production') {
+    const __dirname = dirname(fileURLToPath(import.meta.url))
+    const distPath = join(__dirname, '..', '..', 'dashboard', 'dist')
+    if (existsSync(distPath)) {
+      const serveStatic = async (_req: any, reply: any) => {
+        const indexPath = join(distPath, 'index.html')
+        if (existsSync(indexPath)) {
+          return reply.type('text/html').send(readFileSync(indexPath, 'utf-8'))
+        }
+        return reply.type('text/html').send('CodeHive Dashboard — run <code>npm run build</code> in dashboard/')
+      }
+      app.get('/*', serveStatic)
+    }
+  }
 
   wsObserver.init(app)
 

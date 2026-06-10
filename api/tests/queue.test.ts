@@ -1,4 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
+
+beforeAll(() => {
+  process.env.REDIS_HOST = 'localhost'
+})
 
 const chain = {
   set: vi.fn().mockReturnThis(),
