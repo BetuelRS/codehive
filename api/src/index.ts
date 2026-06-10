@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { readFileSync, existsSync } from 'node:fs'
 import { registerCors } from './plugins/cors.js'
 import { registerWebSocket } from './plugins/ws.js'
+import { registerAuth } from './plugins/auth.js'
+import { registerRateLimit } from './plugins/rate-limit.js'
 import { rootRoutes } from './routes/root.js'
 import { healthRoutes } from './routes/health.js'
 import { executeRoutes } from './routes/execute.js'
@@ -28,6 +30,8 @@ const app = Fastify({
 
 async function start(): Promise<void> {
   await registerCors(app)
+  await registerAuth(app)
+  await registerRateLimit(app)
   await registerWebSocket(app)
 
   await app.register(rootRoutes)
