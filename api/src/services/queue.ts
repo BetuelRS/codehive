@@ -6,20 +6,28 @@ import type { Job, ExecutionRequest, ExecutionResult } from '../types/index.js'
 const QUEUE_KEY = 'codehive:queue'
 const JOB_PREFIX = 'codehive:job:'
 
-const redis = new Redis({
-  host: process.env.REDIS_HOST ?? 'localhost',
-  port: Number(process.env.REDIS_PORT ?? 6379),
-  password: process.env.REDIS_PASSWORD ?? undefined,
-  retryStrategy(times: number) {
-    const delay = Math.min(times * 50, 2000)
-    return delay
-  },
-  maxRetriesPerRequest: 3,
-})
+let redis: Redis | null = null
 
-redis.on('error', (err: Error) => {
-  console.error('Redis error', err)
-})
+function getRedis(): Redis {
+  if (!redis) {
+    redis = new Redis({
+      host: process.env.REDIS_HOST ?? 'localhost',
+      port: Number(process.env.REDIS_PORT ?? 6379),
+      password: process.env.REDIS_PASSWORD ?? undefined,
+      retryStrategy(times: number) {
+        const delay = Math.min(times * 50, 2000)
+        return delay
+      },
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+    })
+    redis.on('error', (err: Error & { code?: string }) => {
+      if (err.code === 'ECONNREFUSED') return
+      console.error('Redis error', err)
+    })
+  }
+  return redis
+}
 
 /** Enqueues execution request to Redis list. */
 export async function enqueue(
@@ -38,7 +46,8 @@ export async function enqueue(
     result: null,
   }
 
-  await redis
+  const r = getRedis()
+  await r
     .multi()
     .set(`${JOB_PREFIX}${id}`, JSON.stringify(job))
     .lpush(QUEUE_KEY, id)
@@ -49,10 +58,11 @@ export async function enqueue(
 
 /** Dequeues next job from Redis list (right-pop). */
 export async function dequeue(): Promise<Job | null> {
-  const id = await redis.rpop(QUEUE_KEY)
+  const r = getRedis()
+  const id = await r.rpop(QUEUE_KEY)
   if (!id) return null
 
-  const data = await redis.get(`${JOB_PREFIX}${id}`)
+  const data = await r.get(`${JOB_PREFIX}${id}`)
   if (!data) return null
 
   return JSON.parse(data) as Job
@@ -60,7 +70,8 @@ export async function dequeue(): Promise<Job | null> {
 
 /** Gets job data from Redis by ID. */
 export async function getJob(id: string): Promise<Job | null> {
-  const data = await redis.get(`${JOB_PREFIX}${id}`)
+  const r = getRedis()
+  const data = await r.get(`${JOB_PREFIX}${id}`)
   if (!data) return null
   return JSON.parse(data) as Job
 }
@@ -74,7 +85,8 @@ export async function updateJob(
   if (!job) throw new Error(`Job ${id} not found`)
 
   Object.assign(job, updates, { updatedAt: new Date().toISOString() })
-  await redis.set(`${JOB_PREFIX}${id}`, JSON.stringify(job))
+  const r = getRedis()
+  await r.set(`${JOB_PREFIX}${id}`, JSON.stringify(job))
 }
 
 /** Updates job with execution result in Redis. */
@@ -88,7 +100,8 @@ export async function updateResult(
   job.result = result
   job.status = result.status
   job.updatedAt = new Date().toISOString()
-  await redis.set(`${JOB_PREFIX}${id}`, JSON.stringify(job))
+  const r = getRedis()
+  await r.set(`${JOB_PREFIX}${id}`, JSON.stringify(job))
 }
 
 /** Lists jobs with pagination and optional time filter. */
@@ -97,9 +110,10 @@ export async function getJobs(
   offset: number,
   filter?: { since?: string },
 ): Promise<Job[]> {
-  const ids = await redis.lrange(QUEUE_KEY, offset, offset + limit - 1)
+  const r = getRedis()
+  const ids = await r.lrange(QUEUE_KEY, offset, offset + limit - 1)
   if (!ids.length) return []
-  const pipeline = redis.pipeline()
+  const pipeline = r.pipeline()
   for (const id of ids) {
     pipeline.get(`${JOB_PREFIX}${id}`)
   }
@@ -118,11 +132,12 @@ export async function getJobs(
 
 /** Counts total jobs, optionally filtered by time. */
 export async function getJobCount(filter?: { since?: string }): Promise<number> {
+  const r = getRedis()
   if (filter?.since) {
-    const ids = await redis.lrange(QUEUE_KEY, 0, -1)
+    const ids = await r.lrange(QUEUE_KEY, 0, -1)
     let count = 0
     for (const id of ids) {
-      const data = await redis.get(`${JOB_PREFIX}${id}`)
+      const data = await r.get(`${JOB_PREFIX}${id}`)
       if (data) {
         const job = JSON.parse(data) as Job
         if (job.createdAt >= filter.since) count++
@@ -130,13 +145,14 @@ export async function getJobCount(filter?: { since?: string }): Promise<number> 
     }
     return count
   }
-  return redis.llen(QUEUE_KEY)
+  return r.llen(QUEUE_KEY)
 }
 
 /** Pings Redis to check connectivity. */
 export async function healthCheck(): Promise<boolean> {
   try {
-    await redis.ping()
+    const r = getRedis()
+    await r.ping()
     return true
   } catch {
     return false
@@ -145,7 +161,7 @@ export async function healthCheck(): Promise<boolean> {
 
 /** Gracefully closes Redis connection. */
 export async function closeRedis(): Promise<void> {
-  await redis.quit()
+  if (redis) await redis.quit()
 }
 
 export { redis }

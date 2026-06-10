@@ -69,6 +69,7 @@ describe('db service', () => {
   it('closePool calls pool.end', async () => {
     mockEnd.mockResolvedValue(undefined)
     const db = await import('../src/services/db.js')
+    await db.healthCheck()
     await db.closePool()
     expect(mockEnd).toHaveBeenCalled()
   })

@@ -111,6 +111,7 @@ describe('queue service', () => {
   })
 
   it('closeRedis quits the redis connection', async () => {
+    await queue.healthCheck()
     await queue.closeRedis()
     expect(mockRedisInstance.quit).toHaveBeenCalled()
   })
