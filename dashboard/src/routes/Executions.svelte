@@ -27,9 +27,22 @@
     submitting = true;
     submitError = "";
     try {
-      await api.submitCode({ language, code, stdin: stdin || undefined });
+      const res = await api.submitCode({ language, code, stdin: stdin || undefined });
       code = "";
       stdin = "";
+      // Poll until execution completes
+      const poll = async (id: string) => {
+        for (let i = 0; i < 60; i++) {
+          const exec = await api.getExecution(id);
+          if (exec.status === "completed" || exec.status === "failed" || exec.status === "timeout") {
+            detailExec = exec;
+            selectedId = id;
+            return;
+          }
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      };
+      poll(res.id).catch(() => {});
       loadExecutions();
     } catch (e) {
       submitError = e instanceof Error ? e.message : "Submission failed";

@@ -17,6 +17,10 @@ vi.mock('../src/services/queue.js', () => ({
   closeRedis: vi.fn(),
 }))
 
+vi.mock('../src/services/executor.js', () => ({
+  executeJob: vi.fn().mockResolvedValue(undefined),
+}))
+
 function createMockApp() {
   const routes: Array<{ method: string; url: string; handler: Function }> = []
   return {

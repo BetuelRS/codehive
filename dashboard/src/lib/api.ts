@@ -64,7 +64,7 @@ async function request<T>(
 
 /** API client methods for all endpoints. */
 export const api = {
-  submitCode(data: ExecutionRequest): Promise<{ id: string; status: string }> {
+  submitCode(data: ExecutionRequest): Promise<{ id: string; status: string; language?: string }> {
     return request("/execute", {
       method: "POST",
       body: JSON.stringify(data),

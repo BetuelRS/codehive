@@ -50,6 +50,10 @@ vi.mock('../../src/services/queue.js', () => ({
   closeRedis: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('../../src/services/executor.js', () => ({
+  executeJob: vi.fn().mockResolvedValue(undefined),
+}))
+
 describe('worker-facing API flow', () => {
   const app = Fastify()
 
