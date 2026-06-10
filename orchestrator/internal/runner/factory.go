@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"os"
 
 	"github.com/codehive/orchestrator/internal/types"
 )
@@ -38,7 +39,20 @@ func (e *rubyExecutor) Execute(ctx context.Context, req types.ExecutionRequest) 
 }
 
 func (e *javaExecutor) Execute(ctx context.Context, req types.ExecutionRequest) (string, string, int, error) {
-	return executeCommand("java", []string{"-e", req.Code}, req.Stdin, req.Timeout)
+	tmpFile, err := os.CreateTemp("", "Main-*.java")
+	if err != nil {
+		return "", "", 1, err
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	if _, err := tmpFile.WriteString(req.Code); err != nil {
+		tmpFile.Close()
+		return "", "", 1, err
+	}
+	tmpFile.Close()
+
+	return executeCommand("java", []string{tmpPath}, req.Stdin, req.Timeout)
 }
 
 func GetExecutor(lang types.Language) Executor {

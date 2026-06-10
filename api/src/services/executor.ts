@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, execSync } from 'node:child_process'
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -27,13 +27,21 @@ export async function executeJob(jobId: string, language: string, code: string, 
 
   const cfg = LANG_INTERPRETER[language] ?? LANG_INTERPRETER['python']
   const dir = mkdtempSync(join(tmpdir(), 'ch-'))
-  const file = join(dir, `code${cfg.ext}`)
+  const fileName = language === 'java' ? 'Main.java' : `code${cfg.ext}`
+  const file = join(dir, fileName)
 
   try {
     writeFileSync(file, code, 'utf-8')
+
+    if (language === 'java') {
+      execSync(`javac "${file}"`, { stdio: 'pipe' })
+    }
+
     const startMs = Date.now()
 
-    const result = await runProcess(cfg, file, stdin, timeoutSec)
+    const result = language === 'java'
+      ? await runProcess({ cmd: 'java', ext: '.java', args: ['-cp', dir, 'Main'] }, file, stdin, timeoutSec)
+      : await runProcess(cfg, file, stdin, timeoutSec)
     const durationMs = Date.now() - startMs
 
     const res: ExecutionResult = {
