@@ -1,4 +1,13 @@
-/** Request body for code execution. */
+/** Code submission from dashboard (language + code style). */
+export interface CodeSubmission {
+  language: string
+  code: string
+  stdin?: string
+  timeout?: number
+  memory?: number
+}
+
+/** Docker-style execution request (internal/worker-facing). */
 export interface ExecutionRequest {
   image: string
   cmd: string[]
@@ -15,9 +24,11 @@ export interface ExecutionResult {
   stdout: string
   stderr: string
   exitCode: number | null
+  language?: string
   startedAt: string | null
   finishedAt: string | null
   error?: string
+  durationMs?: number
 }
 
 /** Job stored in Redis queue. */
@@ -55,4 +66,13 @@ export interface HealthStatus {
     database: 'ok' | 'error'
     redis: 'ok' | 'error'
   }
+}
+
+/** Dashboard aggregate stats. */
+export interface DashboardStats {
+  executions24h: number
+  executions7d: number
+  activeWorkers: number
+  avgDurationMs: number
+  successRate: number
 }

@@ -91,7 +91,7 @@ export async function loadWorkers() {
 
 /** Derived: only online workers. */
 export const onlineWorkers = derived(workers, ($w) =>
-  $w.filter((w) => w.status === "online")
+  $w.filter((w) => w.status === "idle" || w.status === "busy")
 );
 
 /** Derived: only failed executions. */

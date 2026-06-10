@@ -1,151 +1,170 @@
 <script lang="ts">
-  import StatusBadge from "./StatusBadge.svelte";
   import type { ExecutionResult } from "../lib/api";
-  import { formatDuration, timeAgo } from "../lib/api";
 
-  let {
-    execution,
-    expanded = false,
-  }: { execution: ExecutionResult; expanded?: boolean } = $props();
+  let { execution, expanded = false }: { execution: ExecutionResult; expanded?: boolean } = $props();
 
-  let showDetails = $state(false);
-  $effect(() => { if (expanded) showDetails = true; });
+  function statusClass(status: string): string {
+    if (status === "completed") return "status-ok";
+    if (status === "failed") return "status-err";
+    if (status === "timeout") return "status-warn";
+    return "status-pending";
+  }
 </script>
 
-<div class="card" class:expanded={showDetails}>
-  <div class="header" onclick={() => (showDetails = !showDetails)} onkeydown={(e) => e.key === 'Enter' && (showDetails = !showDetails)} role="button" tabindex="0">
-    <div class="meta">
-      <span class="lang-tag">{execution.language}</span>
-      <StatusBadge status={execution.status} />
-      <span class="duration">{formatDuration(execution.durationMs)}</span>
-    </div>
-    <span class="time">{timeAgo(execution.createdAt)}</span>
+<div class="exec-card" class:expanded>
+  <div class="card-header">
+    <span class="exec-id">{execution.id.slice(0, 8)}</span>
+    <span class="lang-badge">{execution.language ?? '-'}</span>
+    <span class={statusClass(execution.status)}>{execution.status}</span>
   </div>
-
-  {#if showDetails}
-    <div class="body">
-      <div class="section">
-        <div class="section-title">Code</div>
-        <pre class="code-block">{execution.code}</pre>
-      </div>
-
-      {#if execution.stdin}
-        <div class="section">
-          <div class="section-title">Stdin</div>
-          <pre class="code-block">{execution.stdin}</pre>
+  {#if expanded}
+    <div class="card-body">
+      {#if execution.startedAt}
+        <div class="row">
+          <span class="label">Started</span>
+          <span>{execution.startedAt}</span>
         </div>
       {/if}
-
-      <div class="cols">
-        {#if execution.stdout}
-          <div class="section">
-            <div class="section-title">Stdout</div>
-            <pre class="code-block output">{execution.stdout}</pre>
-          </div>
-        {/if}
-        {#if execution.stderr}
-          <div class="section">
-            <div class="section-title">Stderr</div>
-            <pre class="code-block error">{execution.stderr}</pre>
-          </div>
-        {/if}
-      </div>
-
-      <div class="footer-meta">
-        <span>Exit: {execution.exitCode ?? "—"}</span>
-        <span>ID: {execution.id.slice(0, 8)}</span>
-        {#if execution.workerId}
-          <span>Worker: {execution.workerId}</span>
-        {/if}
-      </div>
+      {#if execution.finishedAt}
+        <div class="row">
+          <span class="label">Finished</span>
+          <span>{execution.finishedAt}</span>
+        </div>
+      {/if}
+      {#if execution.durationMs}
+        <div class="row">
+          <span class="label">Duration</span>
+          <span>{(execution.durationMs / 1000).toFixed(2)}s</span>
+        </div>
+      {/if}
+      {#if execution.exitCode !== null}
+        <div class="row">
+          <span class="label">Exit Code</span>
+          <span>{execution.exitCode}</span>
+        </div>
+      {/if}
+      {#if execution.stdout}
+        <div class="block">
+          <span class="label">stdout</span>
+          <pre>{execution.stdout}</pre>
+        </div>
+      {/if}
+      {#if execution.stderr}
+        <div class="block">
+          <span class="label">stderr</span>
+          <pre class="stderr">{execution.stderr}</pre>
+        </div>
+      {/if}
+      {#if execution.error}
+        <div class="block">
+          <span class="label">Error</span>
+          <pre class="error">{execution.error}</pre>
+        </div>
+      {/if}
+    </div>
+  {:else}
+    <div class="card-preview">
+      {#if execution.stdout}
+        <pre class="preview">{execution.stdout.slice(0, 120)}</pre>
+      {:else if execution.stderr}
+        <pre class="preview stderr">{execution.stderr.slice(0, 120)}</pre>
+      {:else if execution.status === "queued" || execution.status === "running"}
+        <span class="muted">{execution.status}...</span>
+      {:else}
+        <span class="muted">No output</span>
+      {/if}
     </div>
   {/if}
 </div>
 
 <style>
-  .card {
-    background: var(--bg-secondary);
+  .exec-card {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
+    padding: 12px;
+    background: var(--bg-secondary);
     transition: border-color 0.15s;
   }
-  .card:hover {
+  .exec-card:hover {
     border-color: var(--accent);
   }
-  .header {
+  .expanded {
+    border-color: var(--accent);
+  }
+  .card-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    cursor: pointer;
-    user-select: none;
+    gap: 10px;
+    margin-bottom: 6px;
   }
-  .meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .lang-tag {
-    padding: 1px 8px;
-    border-radius: var(--radius-sm);
-    background: var(--bg-tertiary);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--accent);
-  }
-  .duration {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-  }
-  .time {
+  .exec-id {
+    font-family: monospace;
     font-size: 12px;
     color: var(--text-muted);
   }
-  .body {
-    padding: 0 14px 14px;
-    border-top: 1px solid var(--border);
-  }
-  .section {
-    margin-top: 10px;
-  }
-  .section-title {
+  .lang-badge {
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--bg-tertiary);
     font-size: 11px;
-    font-weight: 600;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .status-ok { color: var(--green); font-size: 12px; font-weight: 500; }
+  .status-err { color: var(--red); font-size: 12px; font-weight: 500; }
+  .status-warn { color: var(--orange); font-size: 12px; font-weight: 500; }
+  .status-pending { color: var(--text-muted); font-size: 12px; }
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .row {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .label {
+    font-size: 11px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    font-weight: 600;
+    min-width: 70px;
   }
-  .code-block {
-    padding: 8px 10px;
-    background: var(--bg-primary);
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  pre {
+    background: var(--bg-tertiary);
     border-radius: var(--radius-sm);
+    padding: 8px;
     font-size: 12px;
-    line-height: 1.5;
     overflow-x: auto;
+    max-height: 200px;
     white-space: pre-wrap;
     word-break: break-all;
-    max-height: 200px;
-    overflow-y: auto;
   }
-  .code-block.output {
-    color: var(--green);
+  .stderr { color: var(--red); }
+  .error { color: var(--red); }
+  .card-preview {
+    margin-top: 4px;
   }
-  .code-block.error {
-    color: var(--red);
-  }
-  .cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .footer-meta {
-    display: flex;
-    gap: 16px;
-    margin-top: 10px;
+  .preview {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    padding: 6px;
     font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-height: 20px;
+  }
+  .muted {
     color: var(--text-muted);
+    font-size: 12px;
   }
 </style>

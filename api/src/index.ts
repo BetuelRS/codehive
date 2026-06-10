@@ -5,7 +5,9 @@ import { registerCors } from './plugins/cors.js'
 import { registerWebSocket } from './plugins/ws.js'
 import { healthRoutes } from './routes/health.js'
 import { executeRoutes } from './routes/execute.js'
+import { executionsRoutes } from './routes/executions.js'
 import { workerRoutes } from './routes/workers.js'
+import { workerApiRoutes } from './routes/worker-api.js'
 import { closePool } from './services/db.js'
 import { closeRedis } from './services/queue.js'
 import { wsObserver } from './services/ws-observer.js'
@@ -28,7 +30,9 @@ async function start(): Promise<void> {
 
   await app.register(healthRoutes)
   await app.register(executeRoutes)
+  await app.register(executionsRoutes)
   await app.register(workerRoutes)
+  await app.register(workerApiRoutes)
 
   wsObserver.init(app)
 

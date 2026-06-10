@@ -10,31 +10,31 @@ export interface ExecutionRequest {
 /** Execution result from API. */
 export interface ExecutionResult {
   id: string;
-  language: string;
-  code: string;
-  stdin: string;
+  language?: string;
   stdout: string;
   stderr: string;
   exitCode: number | null;
-  durationMs: number;
-  status: "pending" | "running" | "completed" | "failed";
+  durationMs?: number;
+  status: "queued" | "running" | "completed" | "failed" | "timeout";
   workerId?: string;
-  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  error?: string;
 }
 
 /** Worker status from API. */
 export interface WorkerInfo {
   id: string;
-  name: string;
-  status: "online" | "offline" | "busy";
-  load: number;
-  runningJobs: number;
-  maxJobs: number;
-  uptime: number;
-  cpuUsage: number;
-  memoryUsage: number;
-  languages: string[];
-  lastSeen: string;
+  name?: string;
+  hostname: string;
+  status: "idle" | "busy" | "offline";
+  labels: Record<string, string>;
+  lastHeartbeat: string;
+  currentJob: string | null;
+  resources: {
+    cpus: number;
+    memory: number;
+  };
 }
 
 /** Dashboard aggregate statistics. */
@@ -64,8 +64,8 @@ async function request<T>(
 
 /** API client methods for all endpoints. */
 export const api = {
-  submitCode(data: ExecutionRequest): Promise<ExecutionResult> {
-    return request("/executions", {
+  submitCode(data: ExecutionRequest): Promise<{ id: string; status: string }> {
+    return request("/execute", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -83,7 +83,7 @@ export const api = {
   },
 
   getExecution(id: string): Promise<ExecutionResult> {
-    return request(`/executions/${id}`);
+    return request(`/status/${id}`);
   },
 
   getWorkers(): Promise<WorkerInfo[]> {

@@ -2,7 +2,6 @@
   import { onMount } from "svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
   import { workers, loadWorkers } from "../lib/stores";
-  import { formatUptime } from "../lib/api";
   import type { WorkerInfo } from "../lib/api";
 
   let selectedWorker = $state<WorkerInfo | null>(null);
@@ -30,25 +29,21 @@
           onkeydown={(e) => e.key === "Enter" && selectWorker(worker)}
         >
           <div class="card-header">
-            <span class="worker-name">{worker.name}</span>
+            <span class="worker-name">{worker.hostname}</span>
             <StatusBadge status={worker.status} />
           </div>
           <div class="card-metrics">
             <div class="metric">
-              <span class="metric-val">{worker.runningJobs}/{worker.maxJobs}</span>
+              <span class="metric-val">{worker.resources.cpus} CPU</span>
+              <span class="metric-lbl">{(worker.resources.memory / 1024).toFixed(0)} GB</span>
+            </div>
+            <div class="metric">
+              <span class="metric-val">{worker.currentJob ? 1 : 0}/1</span>
               <span class="metric-lbl">jobs</span>
-            </div>
-            <div class="metric">
-              <span class="metric-val">{(worker.load * 100).toFixed(0)}%</span>
-              <span class="metric-lbl">load</span>
-            </div>
-            <div class="metric">
-              <span class="metric-val">{worker.languages.length}</span>
-              <span class="metric-lbl">langs</span>
             </div>
           </div>
           <div class="card-footer">
-            <span class="uptime">{formatUptime(worker.uptime)}</span>
+            <span class="heartbeat">{worker.lastHeartbeat ? new Date(worker.lastHeartbeat).toLocaleString() : 'never'}</span>
           </div>
         </div>
       {:else}
@@ -59,38 +54,38 @@
 
   {#if selectedWorker}
     <div class="detail-panel">
-      <h3 class="detail-title">{selectedWorker.name}</h3>
+      <h3 class="detail-title">{selectedWorker.hostname}</h3>
       <div class="detail-grid">
         <div class="detail-item">
           <span class="detail-label">Status</span>
           <StatusBadge status={selectedWorker.status} />
         </div>
         <div class="detail-item">
+          <span class="detail-label">ID</span>
+          <span class="detail-val">{selectedWorker.id}</span>
+        </div>
+        <div class="detail-item">
           <span class="detail-label">CPU</span>
-          <span class="detail-val">{(selectedWorker.cpuUsage * 100).toFixed(1)}%</span>
+          <span class="detail-val">{selectedWorker.resources.cpus} cores</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Memory</span>
-          <span class="detail-val">{(selectedWorker.memoryUsage * 100).toFixed(1)}%</span>
+          <span class="detail-val">{(selectedWorker.resources.memory / 1024).toFixed(1)} GB</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Jobs</span>
-          <span class="detail-val">{selectedWorker.runningJobs} / {selectedWorker.maxJobs}</span>
+          <span class="detail-label">Current Job</span>
+          <span class="detail-val">{selectedWorker.currentJob ?? 'none'}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Load</span>
-          <span class="detail-val">{(selectedWorker.load * 100).toFixed(0)}%</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Uptime</span>
-          <span class="detail-val">{formatUptime(selectedWorker.uptime)}</span>
+          <span class="detail-label">Last Heartbeat</span>
+          <span class="detail-val">{new Date(selectedWorker.lastHeartbeat).toLocaleString()}</span>
         </div>
       </div>
-      <div class="langs-section">
-        <span class="detail-label">Languages</span>
-        <div class="lang-chips">
-          {#each selectedWorker.languages as lang}
-            <span class="lang-chip">{lang}</span>
+      <div class="labels-section">
+        <span class="detail-label">Labels</span>
+        <div class="label-chips">
+          {#each Object.entries(selectedWorker.labels) as [key, val]}
+            <span class="label-chip">{key}={val}</span>
           {/each}
         </div>
       </div>
@@ -200,17 +195,17 @@
     font-size: 14px;
     font-weight: 600;
   }
-  .langs-section {
+  .labels-section {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-  .lang-chips {
+  .label-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
   }
-  .lang-chip {
+  .label-chip {
     padding: 2px 10px;
     background: var(--bg-tertiary);
     border-radius: 999px;

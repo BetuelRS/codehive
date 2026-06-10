@@ -154,6 +154,7 @@ func runExecute() {
 
 	resultCh := make(chan types.ExecutionResult, 1)
 	dispatcher := runner.NewDispatcher(1)
+	dispatcher.Start()
 
 	dispatcher.Submit(&types.Job{
 		Request:  req,
@@ -161,6 +162,7 @@ func runExecute() {
 	})
 
 	result := <-resultCh
+	dispatcher.Stop()
 
 	fmt.Printf("Exit Code: %d\n", result.ExitCode)
 	fmt.Printf("Duration: %s\n", result.Duration)

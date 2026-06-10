@@ -50,13 +50,13 @@ describe('executeRoutes', () => {
     }
 
     await handler(
-      { body: { image: 'node:22', cmd: ['node', '-e', 'console.log(1)'] } },
+      { body: { language: 'javascript', code: 'console.log(1)' } },
       reply,
     )
 
     expect(reply.code).toHaveBeenCalledWith(202)
     expect(reply.send).toHaveBeenCalledWith(
-      expect.objectContaining({ jobId: 'test-job-id', status: 'queued' }),
+      expect.objectContaining({ id: 'test-job-id', status: 'queued' }),
     )
   })
 

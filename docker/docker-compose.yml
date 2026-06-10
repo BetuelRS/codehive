@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: codehive
+      POSTGRES_USER: codehive
+      POSTGRES_PASSWORD: codehive
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codehive"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../api
+      dockerfile: ../docker/api.Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: codehive
+      PGUSER: codehive
+      PGPASSWORD: codehive
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: ../docker/dashboard.Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+  orchestrator:
+    build:
+      context: ../orchestrator
+      dockerfile: ../docker/orchestrator.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: codehive
+      PGUSER: codehive
+      PGPASSWORD: codehive
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

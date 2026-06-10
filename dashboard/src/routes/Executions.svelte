@@ -91,9 +91,9 @@
           tabindex="0"
           onkeydown={(e) => e.key === "Enter" && showDetail(exec.id)}
         >
-          <span class="lang-badge">{exec.language}</span>
+          <span class="lang-badge">{exec.language ?? '-'}</span>
           <span class="status-text">{exec.status}</span>
-          <span class="exec-time">{exec.createdAt}</span>
+          <span class="exec-time">{exec.startedAt ?? exec.finishedAt ?? ''}</span>
         </div>
       {:else}
         <div class="empty">No executions found.</div>

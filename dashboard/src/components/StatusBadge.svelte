@@ -5,23 +5,29 @@
   }: { status: string; label?: string } = $props();
 
   const colors: Record<string, string> = {
+    idle: "var(--green)",
     online: "var(--green)",
     offline: "var(--text-muted)",
     busy: "var(--yellow)",
     completed: "var(--green)",
     running: "var(--blue)",
+    queued: "var(--yellow)",
     pending: "var(--yellow)",
     failed: "var(--red)",
+    timeout: "var(--orange)",
   };
 
   const bgColors: Record<string, string> = {
+    idle: "var(--green-bg)",
     online: "var(--green-bg)",
     offline: "transparent",
     busy: "var(--yellow-bg)",
     completed: "var(--green-bg)",
     running: "var(--blue-bg)",
+    queued: "var(--yellow-bg)",
     pending: "var(--yellow-bg)",
     failed: "var(--red-bg)",
+    timeout: "var(--orange-bg)",
   };
 </script>
 

@@ -91,6 +91,48 @@ export async function updateResult(
   await redis.set(`${JOB_PREFIX}${id}`, JSON.stringify(job))
 }
 
+/** Lists jobs with pagination and optional time filter. */
+export async function getJobs(
+  limit: number,
+  offset: number,
+  filter?: { since?: string },
+): Promise<Job[]> {
+  const ids = await redis.lrange(QUEUE_KEY, offset, offset + limit - 1)
+  if (!ids.length) return []
+  const pipeline = redis.pipeline()
+  for (const id of ids) {
+    pipeline.get(`${JOB_PREFIX}${id}`)
+  }
+  const results = await pipeline.exec()
+  if (!results) return []
+  const jobs: Job[] = []
+  for (const [, data] of results) {
+    if (data && typeof data === 'string') {
+      const job = JSON.parse(data) as Job
+      if (filter?.since && job.createdAt < filter.since) continue
+      jobs.push(job)
+    }
+  }
+  return jobs.slice(0, limit)
+}
+
+/** Counts total jobs, optionally filtered by time. */
+export async function getJobCount(filter?: { since?: string }): Promise<number> {
+  if (filter?.since) {
+    const ids = await redis.lrange(QUEUE_KEY, 0, -1)
+    let count = 0
+    for (const id of ids) {
+      const data = await redis.get(`${JOB_PREFIX}${id}`)
+      if (data) {
+        const job = JSON.parse(data) as Job
+        if (job.createdAt >= filter.since) count++
+      }
+    }
+    return count
+  }
+  return redis.llen(QUEUE_KEY)
+}
+
 /** Pings Redis to check connectivity. */
 export async function healthCheck(): Promise<boolean> {
   try {
