@@ -78,8 +78,10 @@ impl Runner {
             .spawn()
             .map_err(|e| RunnerError::Spawn(e.to_string()))?;
 
+        let start = tokio::time::Instant::now();
         let (stdout, stderr, is_timed_out, exit_code, error) =
             Self::capture_output(child, job.stdin.as_deref(), job.timeout_ms).await?;
+        let duration_ms = start.elapsed().as_millis() as u64;
 
         let success = error.is_none() && exit_code.map_or(true, |c| c == 0);
 
@@ -89,7 +91,7 @@ impl Runner {
             stdout,
             stderr,
             exit_code,
-            duration_ms: 0,
+            duration_ms,
             memory_used_mb: None,
             error: error.clone(),
             timed_out: is_timed_out,
@@ -149,8 +151,10 @@ impl Runner {
             .spawn()
             .map_err(|e| RunnerError::Docker(format!("Failed to spawn docker: {e}")))?;
 
+        let start = tokio::time::Instant::now();
         let (stdout, stderr, is_timed_out, exit_code, error) =
             Self::capture_output(child, job.stdin.as_deref(), job.timeout_ms).await?;
+        let duration_ms = start.elapsed().as_millis() as u64;
 
         let success = error.is_none() && exit_code.map_or(true, |c| c == 0);
 
@@ -160,7 +164,7 @@ impl Runner {
             stdout,
             stderr,
             exit_code,
-            duration_ms: 0,
+            duration_ms,
             memory_used_mb: None,
             error: error.clone(),
             timed_out: is_timed_out,
