@@ -13,7 +13,6 @@ export async function executionsRoutes(app: FastifyInstance): Promise<void> {
         getJobs(limit, offset),
         getJobCount(),
       ])
-      void total
       return reply.send({ items, total })
     } catch (err) {
       return sendError(reply, err instanceof Error ? err : new Error(String(err)))
